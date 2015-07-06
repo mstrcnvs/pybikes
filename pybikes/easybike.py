@@ -6,12 +6,12 @@ import json
 
 from .base import BikeShareSystem, BikeShareStation
 from . import utils
-from contrib import TSTCache
+# from contrib import TSTCache
 
 __all__ = ['EasyBike', 'EasyBikeStation']
 
 
-cache = TSTCache(delta=60)
+cache = dict()
 
 class EasyBike(BikeShareSystem):
     sync = True

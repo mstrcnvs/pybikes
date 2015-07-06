@@ -181,10 +181,10 @@ class SmartShittyStation(BikeShareStation):
     def __init__(self, marker):
         super(SmartShittyStation, self).__init__()
         avail_soup = html.fromstring(marker['info'])
-        availability = map(
+        availability = list(map(
             lambda x: int(x.split(':')[1]),
             avail_soup.xpath("//div/ul/li/text()")
-        )
+        ))
         self.name = marker['title']
         self.latitude = marker['position']['lat']
         self.longitude = marker['position']['lng']

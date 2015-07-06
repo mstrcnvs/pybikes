@@ -3,7 +3,11 @@
 # Distributed under the LGPL license, see LICENSE.txt
 
 import re
-import HTMLParser
+
+try:
+    from html.parser import HTMLParser  # Python3
+except ImportError:
+    import HTMLParser  # Python 2
 
 from .base import BikeShareSystem, BikeShareStation
 from . import utils

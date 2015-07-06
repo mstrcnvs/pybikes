@@ -3,8 +3,13 @@
 # Distributed under the AGPL license, see LICENSE.txt
 
 import re
-import urllib, urllib2
-from urlparse import urlparse
+
+try:
+    from urllib.request import ProxyHandler, build_opener  # Python 3
+    from urllib.parse import urlparse
+except ImportError:
+    from urllib2 import ProxyHandler, build_opener  # Python 2
+    from urlparse import urlparse
 
 import requests
 
@@ -27,7 +32,7 @@ def sp_capwords(word):
         u'ses', u'sa', u'ses'
     ]
     word = word.lower()
-    cap_lambda = lambda (index, w): \
+    cap_lambda = lambda index, w: \
                     w.capitalize() if index == 0 or w not in blacklist \
                                    else w
     return " ".join(map(cap_lambda, enumerate(word.split())))
@@ -54,8 +59,8 @@ class PyBikesScraper(object):
         self.headers['User-Agent'] = user_agent
 
     def __proxy_https_req__(self, url):
-            proxy = urllib2.ProxyHandler(self.proxies)
-            opener = urllib2.build_opener(proxy)
+            proxy = ProxyHandler(self.proxies)
+            opener = build_opener(proxy)
             response = opener.open(url)
             data = response.read()
             if "charset" in response.headers['content-type']:

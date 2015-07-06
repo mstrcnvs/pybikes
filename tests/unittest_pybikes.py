@@ -12,6 +12,12 @@ import sys
 import pybikes
 import keys
 
+try:
+    unichr  # Python 2
+except NameError:
+    unichr = chr  # Python 3
+
+
 class TestSystems(unittest.TestCase):
     def _test_systems(self, schema):
         key = getattr(keys, schema, None)
@@ -75,9 +81,9 @@ class TestSystems(unittest.TestCase):
         """
         instance.update()
         print("%s has %d stations" % (
-            instance.meta['name'], len(instance.stations)
+            instance.meta['name'], len(list(instance.stations))
         ))
-        self.assertTrue(len(instance.stations) > 0)
+        self.assertTrue(len(list(instance.stations)) > 0)
         self._test_allows_parameter(instance)
 
     def _test_allows_parameter(self, instance):

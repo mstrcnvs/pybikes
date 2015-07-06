@@ -21,8 +21,23 @@ __license__ = "AGPL"
 
 import re
 import json
-from itertools import imap
 from pkg_resources import resource_string, resource_listdir
+
+try:
+    from itertools import imap as map  # Python 2
+except ImportError:
+    pass
+
+try:
+    text_type = unicode  # Python 2
+except NameError:
+    text_type = str  # Python 3
+
+try:
+    iteritems = dict.iteritems  # Python 2
+except AttributeError:
+    def iteritems(d):  # Python 3
+        return iter(d.items())
 
 from pybikes.exceptions import BikeShareSystemNotFound
 
@@ -31,10 +46,11 @@ from pybikes.base import BikeShareSystem, BikeShareStation
 from pybikes import utils
 from pybikes import contrib
 
+
 def get_data(schema):
     name = re.sub(r'\.json$', '', schema)
     data = resource_string(__name__, 'data/{}.json'.format(name))
-    return json.loads(data)
+    return json.loads(data.decode('utf-8'))
 
 
 def get_all_data():
@@ -53,7 +69,7 @@ def _uniclass_extractor(data):
 
 
 def _multiclass_extractor(data):
-    for k, v in data['class'].iteritems():
+    for k, v in iteritems(data['class']):
         for i in data['class'][k]['instances']:
             yield (k, i)
 
@@ -65,7 +81,7 @@ def get_instances(schema=None):
         schemas = [schema]
     for schema in schemas:
         data = get_data(schema)
-        if isinstance(data['class'], basestring):
+        if isinstance(data['class'], text_type):
             extractor = _uniclass_extractor
         elif isinstance(data['class'], dict):
             extractor = _multiclass_extractor
@@ -95,7 +111,7 @@ def get_instance(schema, tag):
 
 
 def find_system(tag):
-    datas = imap(get_data, get_all_data())
+    datas = map(get_data, get_all_data())
     for data in datas:
         schema = data['system']
         try:

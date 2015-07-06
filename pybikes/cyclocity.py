@@ -4,7 +4,11 @@
 
 import re
 import json
-import HTMLParser
+
+try:
+    from html.parser import HTMLParser  # Python 3
+except ImportError:
+    import HTMLParser  # Python 2
 
 from lxml import etree
 
