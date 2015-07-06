@@ -8,7 +8,7 @@ import json
 try:
     from html.parser import HTMLParser  # Python 3
 except ImportError:
-    import HTMLParser  # Python 2
+    from HTMLParser import HTMLParser  # Python 2
 
 from lxml import etree
 
@@ -25,7 +25,7 @@ endpoints = {
     'station'  : 'stations/{station_id}?contract={contract}&apiKey={api_key}'
 }
 
-html_parser = HTMLParser.HTMLParser()
+html_parser = HTMLParser()
 
 class Cyclocity(BikeShareSystem):
 
