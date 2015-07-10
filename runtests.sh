@@ -1,3 +1,3 @@
 export PYTHONPATH=$PYTHONPATH:.
-python2 setup.py install
-python2 tests/unittest_pybikes.py $@
+python setup.py install
+python tests/unittest_pybikes.py $@
