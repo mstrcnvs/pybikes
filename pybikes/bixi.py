@@ -46,7 +46,7 @@ def get_xml_stations(self, scraper):
     xml_data = scraper.request(self.feed_url)
     dom = etree.fromstring(xml_data.encode('utf-8'))
     markers = dom.xpath('/stations/station')
-    return map(BixiStation.from_xml, markers)
+    return [BixiStation.from_xml(m) for m in markers]
 
 def get_json_stations(self, scraper):
     data = json.loads(scraper.request(self.feed_url))
@@ -60,9 +60,9 @@ def get_json_stations(self, scraper):
     return stations
 
 def get_json_xml_stations(self, scraper):
-    raw = scraper.request(self.feed_url).decode('unicode-escape')
+    raw = scraper.request(self.feed_url).encode().decode('unicode-escape')
     data = json.loads(raw)
-    return map(BixiStation.from_json_xml, data)
+    return [BixiStation.from_json_xml(d) for d in data]
 
 class BixiStation(BikeShareStation):
     def __init__(self):
@@ -168,22 +168,22 @@ class BixiStation(BikeShareStation):
     @staticmethod
     def from_json_xml(data):
         """ json marker object translated from xml
-        { 
-            "id": "2", 
-            "name": "Docklands Drive - Docklands", 
-            "terminalName": "60000", 
-            "lastCommWithServer": "1375644471147", 
-            "lat": "-37.814022", 
-            "long": "144.939521", 
-            "installed": "true", 
-            "locked": "false", 
-            "installDate": "1313724600000", 
-            "removalDate": {  }, 
-            "temporary": "false", 
-            "public": "true", 
-            "nbBikes": "15", 
-            "nbEmptyDocks": "8", 
-            "latestUpdateTime": "1375592453128" 
+        {
+            "id": "2",
+            "name": "Docklands Drive - Docklands",
+            "terminalName": "60000",
+            "lastCommWithServer": "1375644471147",
+            "lat": "-37.814022",
+            "long": "144.939521",
+            "installed": "true",
+            "locked": "false",
+            "installDate": "1313724600000",
+            "removalDate": {  },
+            "temporary": "false",
+            "public": "true",
+            "nbBikes": "15",
+            "nbEmptyDocks": "8",
+            "latestUpdateTime": "1375592453128"
         }
         """
 
