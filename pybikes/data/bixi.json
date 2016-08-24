@@ -29,10 +29,10 @@
             "format": "xml"
         }, 
         {
-            "tag": "barclays-cycle-hire", 
+            "tag": "santander-cycles", 
             "meta": {
                 "city": "London", 
-                "name": "Barclays Cycle Hire", 
+                "name": "Santander Cycles", 
                 "country": "GB", 
                 "company": [
                     "PBSC", 

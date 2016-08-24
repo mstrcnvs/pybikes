@@ -2,32 +2,7 @@
     "system": "cyclocity", 
     "class": {
         "CyclocityWeb": {
-            "instances": [
-                {
-                    "city": "dublin", 
-                    "meta": {
-                        "latitude": 53.3498053, 
-                        "city": "Dublin", 
-                        "name": "dublinbikes", 
-                        "longitude": -6.2603097, 
-                        "country": "IE"
-                    }, 
-                    "tag": "dublinbikes", 
-                    "endpoint": "http://www.dublinbikes.ie"
-                }, 
-                {
-                    "city": "brisbane", 
-                    "meta": {
-                        "latitude": -27.4710107, 
-                        "city": "Brisbane", 
-                        "name": "CityCycle", 
-                        "longitude": 153.0234489, 
-                        "country": "AU"
-                    }, 
-                    "tag": "citycycle", 
-                    "endpoint": "http://www.citycycle.com.au"
-                }
-            ]
+            "instances": []
         }, 
         "Cyclocity": {
             "instances": [
@@ -102,12 +77,23 @@
                     "meta": {
                         "latitude": 57.70887, 
                         "country": "SE", 
-                        "name": "G\u00f6teborg", 
+                        "name": "Styr & St\u00e4ll",
                         "longitude": 11.97456, 
                         "city": "G\u00f6teborg"
                     }, 
                     "contract": "Goteborg"
                 }, 
+                {
+                    "tag": "lundahoj",
+                    "meta": {
+                        "latitude": 55.7046601,
+                        "country": "SE",
+                        "name": "Lundahoj",
+                        "longitude": 13.1910073,
+                        "city": "Lund"
+                    },
+                    "contract": "Lund"
+                },
                 {
                     "tag": "tusbic", 
                     "meta": {
@@ -305,6 +291,28 @@
                         "city": "Besan\u00e7on"
                     }, 
                     "contract": "Besancon"
+                },
+                {
+                    "meta": {
+                        "latitude": 53.3498053,
+                        "city": "Dublin",
+                        "name": "dublinbikes",
+                        "longitude": -6.2603097,
+                        "country": "IE"
+                    },
+                    "tag": "dublinbikes",
+                    "contract": "Dublin"
+                },
+                {
+                    "meta": {
+                        "latitude": -27.4710107,
+                        "city": "Brisbane",
+                        "name": "CityCycle",
+                        "longitude": 153.0234489,
+                        "country": "AU"
+                    },
+                    "tag": "citycycle",
+                    "contract": "Brisbane"
                 }
             ]
         }

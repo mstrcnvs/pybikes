@@ -9,11 +9,6 @@ from lxml import html
 from .base import BikeShareSystem, BikeShareStation
 from . import utils
 
-__all__ = [
-    'SmartBike', 'SmartBikeStation',
-    'SmartShitty', 'SmartShittyStation'
-]
-
 LAT_LNG_RGX = 'point \= new GLatLng\((.*?)\,(.*?)\)'
 ID_ADD_RGX = 'idStation\=(.*)\&addressnew\=(.*)\&s\_id\_idioma'
 ID_ADD_RGX_V = 'idStation\=\"\+(.*)\+\"\&addressnew\=(.*)\+\"\&s\_id\_idioma'
@@ -69,7 +64,7 @@ def get_json_v2_stations(self, raw):
 
 class SmartBikeStation(BikeShareStation):
     def __init__(self, info):
-        super(SmartBikeStation, self).__init__(0)
+        super(SmartBikeStation, self).__init__()
         try:
             self.name = info['StationName']
             self.bikes = int(info['StationAvailableBikes'])
@@ -94,18 +89,19 @@ class SmartBikeStation(BikeShareStation):
             self.longitude = float(info['lon'])
             self.extra = {
                 'uid': int(info['id']),
-                'status': info['status'],
-                'address': info['address']
+                'status': info['status']
             }
-
+            if 'address' in info:
+                self.extra['address'] = info['address']
             if 'district' in info:
                 self.extra['districtCode'] = info['district']
             elif 'districtCode' in info:
                 self.extra['districtCode'] = info['districtCode']
 
-            if info['nearbyStations'] and info['nearbyStations'] != "0":
+            nearby_stations = info.get('nearbyStations')
+            if nearby_stations and nearby_stations != "0":
                 self.extra['NearbyStationList'] = map(
-                    int, info['nearbyStations'].split(',')
+                    int, nearby_stations.split(',')
                 )
 
             if 'zip' in info and info['zip']:
@@ -118,49 +114,29 @@ class SmartBikeStation(BikeShareStation):
 
 class SmartShitty(BaseSystem):
     """
-    BikeMI decided to implement yet another way of displaying the map...
-    So, I guess what we will do here is using a regular expression to get the
-    info inside the $create function, and then load that as a JSON. Who the
-    fuck pay this guys money, seriously?
+    BikeMI decided (again) to implement yet another way of displaying the map...
+    This time the data come in a less messy way in comparison to the previous version,
+    but the HTML comes unescaped (escaped bellow for better understanding).
+    Who the fuck pay this guys money, seriously?
 
-    <script type="text/javascript">
-    //<![CDATA[
-    Sys.Application.add_init(function() {
-        $create(Artem.Google.MarkersBehavior, {
-            "markerOptions":[
-                {
-                    "clickable":true,
-                    "icon":{
-                        ...
-                    },
-                    "optimized":true,
-                    "position":{
-                        "lat":45.464683238625966,
-                        "lng":9.18879747390747
-                    },
-                    "raiseOnDrag":true,
-                    "title":"01 - Duomo",    _____ Thank you...
-                    "visible":true,         /
-                    "info":"<div style=\"width: 240px; height: 100px;\">
-                                <span style=\"font-weight: bold;\">
-                                    01 - Duomo
-                                </span>
-                                <br/>
-                                <ul>
-                                    <li>Available bicycles: 17</li>
-                                    <li>Available electrical bicycles: 0</li>
-                                    <li>Available slots: 7</li>
-                                </ul>
-                            </div>
-                }, ...
-            ],
-            "name": "fuckeduplongstring"
-        }, null, null, $get("station-map"));
-    })
+    GoogleMap.addMarker(
+        '/media/assets/images/station_map/more_than_five_bikes_flag.png',
+        45.464683238626,
+        9.18879747390747,
+        'Duomo',
+        '<div style="width: 240px; height: 120px;">
+            <span style="font-weight: bold;">178 - V Alpini</span>
+            <br>
+            <ul>
+                <li>Available bicycles: 9</li>
+                <li>Available electrical bicycles: 0</li>
+                <li>Available slots: 20</li>
+                </ul>
+        </div>');
     """
     sync = True
 
-    _RE_MARKERS = 'Google\.MarkersBehavior\,\ (?P<data>.*?)\,\ null'
+    RGX_MARKERS = r'GoogleMap\.addMarker\(.*?,\s*(\d+.\d+)\s*,\s*(\d+.\d+),\s*\'(.*?)\',(.*?)\)\;'
 
     def __init__(self, tag, meta, feed_url):
         super(SmartShitty, self).__init__(tag, meta)
@@ -171,26 +147,41 @@ class SmartShitty(BaseSystem):
             scraper = utils.PyBikesScraper()
 
         page = scraper.request(self.feed_url)
-        markers = json.loads(
-            re.search(SmartShitty._RE_MARKERS, page).group('data')
-        )['markerOptions']
-        self.stations = map(SmartShittyStation, markers)
+        stations_data = re.findall(SmartShitty.RGX_MARKERS,
+                                   page.encode('utf-8'))
+        stations = []
+        stats_query = """
+            //td[span[text() = "%s"]]/
+                following-sibling::td/text()
+        """
 
+        stats_rules = {
+            'std': 'Bicycles',
+            'ebikes': 'Electric bicycles',
+            # Kids bikes seem to not be implemented
+            # 'kids_bikes': 'Bicycles for kids'
+        }
 
-class SmartShittyStation(BikeShareStation):
-    def __init__(self, marker):
-        super(SmartShittyStation, self).__init__()
-        avail_soup = html.fromstring(marker['info'])
-        availability = list(map(
-            lambda x: int(x.split(':')[1]),
-            avail_soup.xpath("//div/ul/li/text()")
-        ))
-        self.name = marker['title']
-        self.latitude = marker['position']['lat']
-        self.longitude = marker['position']['lng']
-        self.bikes = availability[0] + availability[1]
-        self.free = availability[2]
-        self.extra = {}
-        if availability[1] > 0:
-            self.extra['has_ebikes'] = True
-            self.extra['ebikes'] = availability[2]
+        for station_data in stations_data:
+            latitude, longitude, name, mess = station_data
+            html_mess = html.fromstring(mess.decode('unicode_escape'))
+            stats = {}
+            bikes = 0
+            extra = {}
+
+            for k, rule in stats_rules.iteritems():
+                stats[k] = map(int, html_mess.xpath(stats_query % rule))
+
+            if stats['std']:
+                bikes += stats['std'][0]
+                free = stats['std'][1]
+
+            if stats['ebikes'] and stats['ebikes'][0] > 0:
+                bikes += stats['ebikes'][0]
+                extra['ebikes'] = stats['ebikes'][0]
+                extra['has_ebikes'] = True
+
+            station = BikeShareStation(name, float(latitude), float(longitude),
+                                       bikes, free, extra)
+            stations.append(station)
+        self.stations = stations

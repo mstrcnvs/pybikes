@@ -2,15 +2,21 @@
 # Copyright (C) 2010-2012, eskerda <eskerda@gmail.com>
 # Distributed under the AGPL license, see LICENSE.txt
 import re
-import json
-from pkg_resources import resource_string
-
 import unittest
-
 import sys
 
 import pybikes
-import keys
+try:
+    import keys
+except ImportError:
+    print("Keys for testing not found, going to use invalid keys")
+
+    class DumbObject(object):
+        def __getattr__(self, name):
+            return 'invalid key'
+
+    keys = DumbObject()
+
 
 try:
     unichr  # Python 2
@@ -32,6 +38,7 @@ class TestSystems(unittest.TestCase):
             - Tests okayness of 5 stations on the system
         """
         p_sys = pybikes.get(tag, key)
+        print(u'Testing {!r}, {!r}'.format(p_sys.meta['name'], p_sys.meta.get('city')))
         self._test_update(p_sys)
         station_string = ""
         if len(p_sys.stations) < 5:
@@ -59,7 +66,6 @@ class TestSystems(unittest.TestCase):
             self._test_allows_parameter(station)
         else:
             self._test_dumb_allows_parameter(station)
-
         # Required fields
         self.assertIsNotNone(station.bikes)
         self.assertIsNotNone(station.latitude)
@@ -107,7 +113,8 @@ class TestSystems(unittest.TestCase):
             instance.update(scraper)
         except Exception:
             raised = True
-        self.assertFalse(raised, 'Base class does not allow an scraper parameter')
+        self.assertFalse(raised,
+                         'Base class does not allow an scraper parameter')
 
 
 class TestBikeShareStationInstance(unittest.TestCase):
@@ -143,6 +150,7 @@ class TestBikeShareStationInstance(unittest.TestCase):
             'instance': stationBar,
             'hash': '065d7bb95e6c9079190334ee0d320c72'
         })
+
     def testHash(self):
         for unit in self.battery:
             self.assertEqual(
@@ -150,25 +158,25 @@ class TestBikeShareStationInstance(unittest.TestCase):
                 unit['hash']
             )
 
-class TestBikeShareSystemInstance(unittest.TestCase):
 
+class TestBikeShareSystemInstance(unittest.TestCase):
     def setUp(self):
 
         metaFoo = {
-            'name' : 'Foo',
-            'uname' : 'foo',
-            'city' : 'Fooland',
-            'country' : 'FooEmpire',
-            'latitude' : 10.12312,
-            'longitude' : 1.12312,
-            'company' : 'FooCompany'
+            'name': 'Foo',
+            'uname': 'foo',
+            'city': 'Fooland',
+            'country': 'FooEmpire',
+            'latitude': 10.12312,
+            'longitude': 1.12312,
+            'company': 'FooCompany'
         }
 
         metaBar = {
-            'name' : 'Bar',
-            'uname' : 'bar',
-            'city' : 'Barland',
-            'population' : 100000
+            'name': 'Bar',
+            'uname': 'bar',
+            'city': 'Barland',
+            'population': 100000
         }
 
         class FooSystem(pybikes.BikeShareSystem):
@@ -183,20 +191,20 @@ class TestBikeShareSystemInstance(unittest.TestCase):
             #     2) Base metadata of the system (BarSystem)
             #     3) Metadata passed on instantiation (metaBar)
             meta = {
-                'company' : 'BarCompany'
+                'company': 'BarCompany'
             }
 
         self.battery = []
         self.battery.append({
-                        'tag': 'foo',
-                        'meta': metaFoo,
-                        'instance': FooSystem('foo', metaFoo)
-                    })
+            'tag': 'foo',
+            'meta': metaFoo,
+            'instance': FooSystem('foo', metaFoo)
+        })
         self.battery.append({
-                        'tag': 'bar',
-                        'meta': dict(metaBar,**BarSystem.meta),
-                        'instance': BarSystem('bar',metaBar)
-                    })
+            'tag': 'bar',
+            'meta': dict(metaBar, **BarSystem.meta),
+            'instance': BarSystem('bar', metaBar)
+        })
 
     def test_instantiation(self):
         # make sure instantiation parameters are correctly stored
@@ -208,11 +216,9 @@ class TestBikeShareSystemInstance(unittest.TestCase):
             # Check that all metainfo set on instantiation
             # appears on the instance
             for meta in unit.get('meta'):
-                self.assertIn(meta,unit.get('instance').meta)
-                self.assertEqual(
-                        unit.get('meta').get(meta),
-                        unit.get('instance').meta.get(meta)
-                    )
+                self.assertIn(meta, unit.get('instance').meta)
+                self.assertEqual(unit.get('meta').get(meta),
+                                 unit.get('instance').meta.get(meta))
 
             # Check that all metainfo not set on instantiation
             # appears on the instance as None
@@ -233,11 +239,11 @@ class TestDataFiles(unittest.TestCase):
         schemas = pybikes.get_all_data()
         for schema in schemas:
             instances = pybikes.get_instances(schema)
-            for _, instance in instances:
-                self._test_instance_unique(instance, schema)
-                self._test_instance_fields(instance, schema)
+            for _class, instance in instances:
+                self._test_instance_fields(instance, schema, _class)
+                self._test_instance_unique(instance, schema, _class)
 
-    def _test_instance_unique(self, instance, schema):
+    def _test_instance_unique(self, instance, schema, _class):
         if instance['tag'] in self.tags:
             msg = (
                 'Tag {} in {} from {} is not unique. '.format(
@@ -257,14 +263,30 @@ class TestDataFiles(unittest.TestCase):
             'schema': schema
         }
 
-    def _test_instance_fields(self, instance, schema):
+    def _test_instance_fields(self, _instance, schema, _class):
         self.longMessage = True
-        msg = '{} contains errors. File: {}'.format(instance, schema)
-        meta = instance['meta']
-        self.assertIn('latitude', meta, msg=msg)
-        self.assertIn('longitude', meta, msg=msg)
-        self.assertIsInstance(meta['latitude'], float, msg=msg)
-        self.assertIsInstance(meta['longitude'], float, msg=msg)
+        # Some fields may be defined as class attributes and then passed into
+        # instance meta, so we need to instantiate it
+        # We do not really need keys here
+        msg = 'File: %r' % schema
+        self.assertIn('tag', _instance, msg=msg)
+        self.assertIn('meta', _instance, msg=msg)
+
+        instance = pybikes.get(_instance['tag'], key='foobar')
+        meta = instance.meta
+        msg = 'instance {!r}. File: {}'.format(
+            meta, schema
+        )
+        # Test bare minimum definitions of networks
+
+        for field in ['latitude', 'longitude']:
+            self.assertIn(field, meta, msg=('Missing %r on ' % field) + msg)
+            self.assertIsInstance(meta[field], float,
+                                  msg=('Error in %r on ' % field) + msg)
+        for field in ['city', 'country', 'name']:
+            self.assertIn(field, meta, msg=('Missing %r on ' % field) + msg)
+            self.assertIsInstance(meta[field], basestring,
+                                  msg=('Error in %r on ' % field) + msg)
 
 
 def create_test_schema_method(schema):
@@ -272,11 +294,22 @@ def create_test_schema_method(schema):
         self._test_systems(schema)
     return test_schema
 
+
+def create_test_system_method(schema, tag):
+    def test_system(self):
+        key = getattr(keys, schema, None)
+        self._test_system(tag, key)
+    return test_system
+
 schemas = map(lambda name: re.sub(r'\.json$', '', name), pybikes.get_all_data())
 for schema in schemas:
     test_schema = create_test_schema_method(schema)
     test_schema.__name__ = 'test_%s' % schema
     setattr(TestSystems, test_schema.__name__, test_schema)
+    for clsname, instance in pybikes.get_instances(schema):
+        test_system = create_test_system_method(schema, instance.get('tag'))
+        test_system.__name__ = 'test_%s' % str(instance.get('tag'))
+        setattr(TestSystems, test_system.__name__, test_system)
 
 if __name__ == '__main__':
     unittest.main()
