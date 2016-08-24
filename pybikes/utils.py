@@ -3,14 +3,6 @@
 # Distributed under the AGPL license, see LICENSE.txt
 
 import re
-
-try:
-    from urllib.request import ProxyHandler, build_opener  # Python 3
-    from urllib.parse import urlparse
-except ImportError:
-    from urllib2 import ProxyHandler, build_opener  # Python 2
-    from urlparse import urlparse
-
 import requests
 
 
@@ -29,8 +21,9 @@ def sp_capwords(word):
         # Catala | Valencia | Mallorqui
         u'ses', u'sa', u'ses'
     ]
+
     word = word.lower()
-    cap_lambda = lambda (i, w): w.capitalize() if i == 0 or w not in blacklist else w
+    cap_lambda = lambda i, w: w.capitalize() if i == 0 or w not in blacklist else w
 
     return " ".join(map(cap_lambda, enumerate(word.split())))
 
